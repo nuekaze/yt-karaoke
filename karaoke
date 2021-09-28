@@ -1,12 +1,12 @@
 #!/bin/sh
 
 # Variables.
-CH_LIST="$HOME/.karaoke/channel_list"
+CH_LIST="$HOME/.karaoke/playlists"
 DB="$HOME/.karaoke/videos.db"
 MPV_OPTIONS="--fullscreen"
 
 # Check if command is used correctly.
-[ -z "$1" ] && echo "Usage: $0 play|search|update VIDEO" && exit 1
+[ -z "$1" ] && echo "Usage: $0 play|search|update SONG" && exit 1
 
 # Play a video that you search for.
 play() {
@@ -29,15 +29,15 @@ update() {
     echo "This will take a while..."
     touch $DB
     for CH in $(cat $CH_LIST); do
-        echo "Processing channel $(curl $CH 2> /dev/null | sed 's/></>\n</g' | grep "<title>" | sed -e 's/<title>\(.*\)<\/title>/\1/')"
-        youtube-dl --get-id --get-title --ignore-errors $CH >> .db.tmp 2> /dev/null
+        echo "Processing $(curl $CH 2> /dev/null | sed 's/></>\n</g' | grep "<title>" | sed -e 's/<title>\(.*\)<\/title>/\1/')"
+        youtube-dl --get-id --get-title --ignore-errors $CH >> /tmp/k_db.tmp 2> /dev/null
     done
 
     echo "Formatting DB file..."
-    awk 'NR % 2 {print}' .db.tmp | nl --number-format=rz  > .names.tmp
-    awk '!(NR % 2) {print}' .db.tmp > .ids.tmp
-    paste -d \\n .names.tmp .ids.tmp > $DB
-    rm .names.tmp .ids.tmp
+    awk 'NR % 2 {print}' /tmp/k_db.tmp | nl --number-format=rz  > /tmp/k_names.tmp
+    awk '!(NR % 2) {print}' /tmp/k_db.tmp > /tmp/k_ids.tmp
+    paste -d \\n /tmp/k_names.tmp /tmp/k_ids.tmp > $DB
+    rm /tmp/k_names.tmp /tmp/k_ids.tmp /tmp/k_db.tmp
     echo "Done."
 }
 
