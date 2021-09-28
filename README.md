@@ -12,7 +12,7 @@ When playlists are added, run "karaoke update" and it will index all videos into
 You can then search and play songs by either entering the number or the song name.
 
 # Settings
-You can edit the karaoke script and change the MPV variable if you want other MPV settings.
+You can edit the karaoke script and change the MPV_OPTIONS variable if you want other MPV settings.
 
 # Todo
 Make a setting that download songs as they are played so then don't have to be streamed multiple times in case they are played often.<br />
