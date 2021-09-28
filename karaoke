@@ -4,6 +4,7 @@
 CH_LIST="$HOME/.karaoke/playlists"
 DB="$HOME/.karaoke/videos.db"
 MPV_OPTIONS="--fullscreen"
+TMP="/tmp/yt-karaoke"
 
 # Check if command is used correctly.
 [ -z "$1" ] && echo "Usage: $0 play|search|update SONG" && exit 1
@@ -12,8 +13,8 @@ MPV_OPTIONS="--fullscreen"
 play() {
     S="$@"
     [ -z "$1" ] && echo "Need a video to play." && exit
-    VIDEO="$(grep -A1 "$S" $DB | head -n2 | tail -n1)"
-    [ ! -z "$VIDEO" ] && mpv $MPV_OPTIONS https://youtube.com/watch?v=$VIDEO || echo "$S was not found."
+    VIDEO="$(grep -A1 -i "$S" $DB | head -n2 | tail -n1)"
+    [ ! -z "$VIDEO" ] && mpv $MPV_OPTIONS https://youtube.com/watch?v=$VIDEO > /dev/null 2> /dev/null || echo "$S was not found."
 }
 
 # Search for videos.
@@ -26,18 +27,19 @@ search() {
 # Update the list of videos.
 update() {
     [ -f "$DB" ] && mv $DB ${DB}.$(date +%d%m%y_%H%M) && echo "Old DB saved to ${DB}.$(date +%d%m%y_%H%M)"
+    [ -d "$TMP" ] && rm -rf $TMP ; mkdir $TMP
     echo "This will take a while..."
     touch $DB
     for CH in $(cat $CH_LIST); do
         echo "Processing $(curl $CH 2> /dev/null | sed 's/></>\n</g' | grep "<title>" | sed -e 's/<title>\(.*\)<\/title>/\1/')"
-        youtube-dl --get-id --get-title --ignore-errors $CH >> /tmp/k_db.tmp 2> /dev/null
+        youtube-dl --get-id --get-title --ignore-errors $CH >> $TMP/k_db.tmp 2> /dev/null
     done
 
     echo "Formatting DB file..."
-    awk 'NR % 2 {print}' /tmp/k_db.tmp | nl --number-format=rz  > /tmp/k_names.tmp
-    awk '!(NR % 2) {print}' /tmp/k_db.tmp > /tmp/k_ids.tmp
-    paste -d \\n /tmp/k_names.tmp /tmp/k_ids.tmp > $DB
-    rm /tmp/k_names.tmp /tmp/k_ids.tmp /tmp/k_db.tmp
+    awk 'NR % 2 {print}' $TMP/k_db.tmp | nl --number-format=rz  > $TMP/k_names.tmp
+    awk '!(NR % 2) {print}' $TMP/k_db.tmp > $TMP/k_ids.tmp
+    paste -d \\n $TMP/k_names.tmp $TMP/k_ids.tmp > $DB
+    rm -rf $TMP
     echo "Done."
 }
 
