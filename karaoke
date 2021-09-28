@@ -1,0 +1,48 @@
+#!/bin/sh
+
+# Variables.
+CH_LIST="$HOME/.karaoke/channel_list"
+DB="$HOME/.karaoke/videos.db"
+MPV_OPTIONS="--fullscreen"
+
+# Check if command is used correctly.
+[ -z "$1" ] && echo "Usage: $0 play|search|update VIDEO" && exit 1
+
+# Play a video that you search for.
+play() {
+    S="$@"
+    [ -z "$1" ] && echo "Need a video to play." && exit
+    VIDEO="$(grep -A1 "$S" $DB | head -n2 | tail -n1)"
+    [ ! -z "$VIDEO" ] && mpv $MPV_OPTIONS https://youtube.com/watch?v=$VIDEO || echo "$S was not found."
+}
+
+# Search for videos.
+search() {
+    S="$@"
+    [ -z "$1" ] && echo "Need a string to search for." && exit
+    awk 'NR % 2 {print}' $DB | grep -i "$S" || echo "$S was not found."
+}
+
+# Update the list of videos.
+update() {
+    [ -f "$DB" ] && mv $DB ${DB}.$(date +%d%m%y_%H%M) && echo "Old DB saved to ${DB}.$(date +%d%m%y_%H%M)"
+    echo "This will take a while..."
+    touch $DB
+    for CH in $(cat $CH_LIST); do
+        echo "Processing channel $(curl $CH 2> /dev/null | sed 's/></>\n</g' | grep "<title>" | sed -e 's/<title>\(.*\)<\/title>/\1/')"
+        youtube-dl --get-id --get-title --ignore-errors $CH >> .db.tmp 2> /dev/null
+    done
+
+    echo "Formatting DB file..."
+    awk 'NR % 2 {print}' .db.tmp | nl --number-format=rz  > .names.tmp
+    awk '!(NR % 2) {print}' .db.tmp > .ids.tmp
+    paste -d \\n .names.tmp .ids.tmp > $DB
+    rm .names.tmp .ids.tmp
+    echo "Done."
+}
+
+# Select function to run.
+[ "$1" = "play" ]   && shift && play "$@" && exit
+[ "$1" = "search" ] && shift && search "$@" && exit
+[ "$1" = "update" ] && update && exit
+echo "$1 is not a valid option." && exit 1
